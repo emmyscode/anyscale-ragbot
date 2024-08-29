@@ -1,7 +1,7 @@
 from pathlib import Path
 
 # Directories
-EFS_DIR = Path("/mnt/shared_storage/ray-assistant-data")
+EFS_DIR = Path("/mnt/shared_storage/emmy")
 ROOT_DIR = Path(__file__).parent.parent.absolute()
 
 # Embedding dimensions
@@ -10,11 +10,13 @@ EMBEDDING_DIMENSIONS = {
     "thenlper/gte-large": 1024,
     "BAAI/bge-large-en": 1024,
     "text-embedding-ada-002": 1536,
+    "text-embedding-3-large": 3072,
     "gte-large-fine-tuned": 1024,
 }
 
 # Maximum context lengths
 MAX_CONTEXT_LENGTHS = {
+    "gpt-4o": 128000,
     "gpt-4": 8192,
     "gpt-3.5-turbo": 4096,
     "gpt-3.5-turbo-16k": 16384,
