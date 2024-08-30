@@ -39,7 +39,7 @@ def get_secret(secret_name):
     import boto3
 
     client = boto3.client("secretsmanager", region_name="us-west-2")
-    response = client.get_secret_value(SecretId=os.environ["RAY_ASSISTANT_SECRET"])
+    response = client.get_secret_value(SecretId=os.environ["ANYSCALE_ASSISTANT_SECRETS"])
     return json.loads(response["SecretString"])[secret_name]
 
 
@@ -91,7 +91,7 @@ class Answer(BaseModel):
     route_prefix="/", num_replicas=1, ray_actor_options={"num_cpus": 6, "num_gpus": 1}
 )
 @serve.ingress(app)
-class RayAssistantDeployment:
+class AnyscaleAssistantDeployment:
     def __init__(
         self,
         chunk_size,
@@ -110,7 +110,7 @@ class RayAssistantDeployment:
     ):
         # Configure logging
         logging.basicConfig(
-            filename=os.environ["RAY_ASSISTANT_LOGS"], level=logging.INFO, encoding="utf-8"
+            filename=os.environ["ANYSCALE_ASSISTANT_LOGS"], level=logging.INFO, encoding="utf-8"
         )
         structlog.configure(
             processors=[
@@ -122,8 +122,6 @@ class RayAssistantDeployment:
         self.logger = structlog.get_logger()
 
         # Set credentials
-        os.environ["ANYSCALE_API_BASE"] = "https://api.endpoints.anyscale.com/v1"
-        os.environ["ANYSCALE_API_KEY"] = get_secret("ANYSCALE_API_KEY")
         os.environ["OPENAI_API_BASE"] = "https://api.openai.com/v1"
         os.environ["OPENAI_API_KEY"] = get_secret("OPENAI_API_KEY")
         os.environ["DB_CONNECTION_STRING"] = get_secret("DB_CONNECTION_STRING")
@@ -149,7 +147,7 @@ class RayAssistantDeployment:
         self.rerank_threshold = rerank_threshold
         self.rerank_k = rerank_k
         if use_reranking:
-            reranker_fp = Path(os.environ["RAY_ASSISTANT_RERANKER_MODEL"])
+            reranker_fp = Path(os.environ["ANYSCALE_ASSISTANT_RERANKER_MODEL"])
             with open(reranker_fp, "rb") as file:
                 reranker = pickle.load(file)
 
@@ -160,29 +158,15 @@ class RayAssistantDeployment:
             "Contexts are organized in a list of dictionaries [{'text': <context>}, {'text': <context>}, ...]. "
             "Feel free to ignore any contexts in the list that don't seem relevant to the query. "
         )
-        self.oss_agent = QueryAgent(
-            embedding_model_name=embedding_model_name,
-            chunks=chunks,
-            lexical_index=lexical_index,
-            reranker=reranker,
-            llm=llm,
-            max_context_length=MAX_CONTEXT_LENGTHS[llm],
-            system_content=system_content,
-        )
         self.gpt_agent = QueryAgent(
             embedding_model_name=embedding_model_name,
             chunks=chunks,
             lexical_index=lexical_index,
             reranker=reranker,
-            llm="gpt-4",
-            max_context_length=MAX_CONTEXT_LENGTHS["gpt-4"],
+            llm="gpt-4o",
+            max_context_length=MAX_CONTEXT_LENGTHS["gpt-4o"],
             system_content=system_content,
         )
-
-        # Router
-        router_fp = Path(os.environ["RAY_ASSISTANT_ROUTER_MODEL"])
-        with open(router_fp, "rb") as file:
-            self.router = pickle.load(file)
 
         if run_slack:
             # Run the Slack app in the background
@@ -190,9 +174,7 @@ class RayAssistantDeployment:
             self.runner = self.slack_app.run.remote()
 
     def predict(self, query: Query, stream: bool) -> Dict[str, Any]:
-        use_oss_agent = self.router.predict([query.query])[0]
-        agent = self.oss_agent if use_oss_agent else self.gpt_agent
-        result = agent(
+        result = self.gpt_agent(
             query=query.query,
             num_chunks=self.num_chunks,
             lexical_search_k=self.lexical_search_k,
@@ -261,7 +243,7 @@ class RayAssistantDeployment:
             result = self.predict(query, stream=True)
         else:
             # For now, we always use the OSS agent for follow up questions
-            agent = self.oss_agent
+            agent = self.gpt_agent
             answer = send_request(
                 llm=agent.llm,
                 messages=request.messages,
@@ -277,17 +259,17 @@ class RayAssistantDeployment:
 
 
 # Deploy the Ray Serve app
-deployment = RayAssistantDeployment.bind(
+deployment = AnyscaleAssistantDeployment.bind(
     chunk_size=700,
     chunk_overlap=50,
     num_chunks=30,
-    embedding_model_name=os.environ["RAY_ASSISTANT_EMBEDDING_MODEL"],
-    embedding_dim=EMBEDDING_DIMENSIONS[os.environ["RAY_ASSISTANT_EMBEDDING_MODEL"]],
+    embedding_model_name=os.environ["ANYSCALE_ASSISTANT_EMBEDDING_MODEL"],
+    embedding_dim=EMBEDDING_DIMENSIONS[os.environ["ANYSCALE_ASSISTANT_EMBEDDING_MODEL"]],
     use_lexical_search=True,
     lexical_search_k=1,
     use_reranking=True,
     rerank_threshold=0.9,
     rerank_k=13,
-    llm="gpt-4",
-    sql_dump_fp=Path(os.environ["RAY_ASSISTANT_INDEX"]),
+    llm="gpt-4o",
+    sql_dump_fp=Path(os.environ["ANYSCALE_ASSISTANT_INDEX"]),
 )

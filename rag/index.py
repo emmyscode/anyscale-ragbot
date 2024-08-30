@@ -6,7 +6,6 @@ import psycopg
 import ray
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from pgvector.psycopg import register_vector
-from ray.data import ActorPoolStrategy
 
 from rag.config import EFS_DIR
 from rag.data import extract_sections
@@ -64,7 +63,7 @@ def build_index(docs_dir, chunk_size, chunk_overlap, embedding_model_name, sql_d
         fn_constructor_kwargs={"model_name": embedding_model_name},
         batch_size=100,
         num_gpus=1,
-        compute=ActorPoolStrategy(size=1),
+        concurrency=1,
     )
 
     # Index data
@@ -72,7 +71,7 @@ def build_index(docs_dir, chunk_size, chunk_overlap, embedding_model_name, sql_d
         StoreResults,
         batch_size=128,
         num_cpus=1,
-        compute=ActorPoolStrategy(size=6),
+        concurrency=6,
     ).count()
 
     # Save to SQL dump
