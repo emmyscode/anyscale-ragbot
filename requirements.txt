@@ -3,6 +3,7 @@ beautifulsoup4
 rank-bm25
 fastapi
 langchain
+langchain-openai
 matplotlib
 openai
 pre-commit

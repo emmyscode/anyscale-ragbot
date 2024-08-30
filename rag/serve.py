@@ -186,7 +186,7 @@ class AnyscaleAssistantDeployment:
 
     @app.post("/query")
     def query(self, query: Query) -> Answer:
-        result = self.predict(query, stream=False)
+        result = self.predict(query, stream=True)
         return Answer.parse_obj(result)
 
     # This will be removed after all traffic is migrated to the /chat endpoint

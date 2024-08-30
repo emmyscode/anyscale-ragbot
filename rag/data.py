@@ -36,6 +36,19 @@ def extract_sections(record):
     return section_list
 
 
+def extract_md_sections(docs_dir):
+    sections = []
+    for path in docs_dir.rglob("*.md"):
+        if not path.is_dir():
+            with open(path, "r", encoding="utf-8") as file:
+                text = file.read()
+            # Convert the file path to a URL, remove the '.md' extension
+            relative_path = path.relative_to(docs_dir).with_suffix("")  # Remove the '.md'
+            source = f"https://docs.anyscale.com/{relative_path.as_posix()}"
+            sections.append({"source": source, "text": text})
+    return sections
+
+
 def fetch_text(uri):
     url, anchor = uri.split("#") if "#" in uri else (uri, None)
     file_path = Path(EFS_DIR, url.split("https://")[-1])

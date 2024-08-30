@@ -1,15 +1,16 @@
 import json
+import os
 import pickle
 import re
 import time
 from pathlib import Path
 
 from IPython.display import JSON, clear_output, display
+from langchain_openai import OpenAIEmbeddings
 from rank_bm25 import BM25Okapi
 from tqdm import tqdm
 
 from rag.config import EFS_DIR, ROOT_DIR
-from rag.embed import get_embedding_model
 from rag.index import load_index
 from rag.rerank import custom_predict, get_reranked_indices
 from rag.search import lexical_search, semantic_search
@@ -88,21 +89,21 @@ def generate_response(
 class QueryAgent:
     def __init__(
         self,
-        embedding_model_name="thenlper/gte-base",
+        embedding_model_name="text-embedding-3-large",
         chunks=None,
         lexical_index=None,
         reranker=None,
-        llm="meta-llama/Llama-2-70b-chat-hf",
+        llm="gpt-4o",
         temperature=0.0,
-        max_context_length=4096,
+        max_context_length=128000,
         system_content="",
         assistant_content="",
     ):
         # Embedding model
-        self.embedding_model = get_embedding_model(
-            embedding_model_name=embedding_model_name,
-            model_kwargs={"device": "cuda"},
-            encode_kwargs={"device": "cuda", "batch_size": 100},
+        self.embedding_model = OpenAIEmbeddings(
+            model="text-embedding-3-large",
+            openai_api_base=os.environ["OPENAI_API_BASE"],
+            openai_api_key=os.environ["OPENAI_API_KEY"],
         )
 
         # Lexical search
@@ -215,7 +216,6 @@ def generate_responses(
         embedding_dim=embedding_dim,
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
-        docs_dir=docs_dir,
         sql_dump_fp=sql_dump_fp,
     )
 
