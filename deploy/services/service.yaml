@@ -1,17 +1,12 @@
-name: "ray-assistant-public"
-compute_config_id: cpt_waeba7v8yurzlh42us6cy619ha
-cluster_env: ray-assistant
-config:
-  access:
-    use_bearer_token: False
-ray_serve_config:
-  import_path: rag.serve:deployment
-  runtime_env:
-    working_dir: "."
-    env_vars:
-      RAY_ASSISTANT_SECRET: "ray-assistant-prod"  # pragma: allowlist secret
-      RAY_ASSISTANT_LOGS: "/mnt/shared_storage/ray-assistant-logs/info.log"
-      RAY_ASSISTANT_INDEX: "/mnt/shared_storage/ray-assistant-data/index.sql"
-      RAY_ASSISTANT_EMBEDDING_MODEL: "thenlper/gte-large"
-      RAY_ASSISTANT_ROUTER_MODEL: "/mnt/shared_storage/ray-assistant-data/router.pkl"
-      RAY_ASSISTANT_RERANKER_MODEL: "/mnt/shared_storage/ray-assistant-data/reranker.pkl"
+name: anyscale-ragbot
+applications:
+  - import_path: rag.serve:deployment
+image_uri: anyscale/image/anyscale-ragbot:1
+compute_config: anyscale-ragbot:1
+working_dir: "."
+env_vars:
+  ANYSCALE_ASSISTANT_SECRETS: "anyscale-assistant-prod"  # pragma: allowlist secret
+  ANYSCALE_ASSISTANT_LOGS: "/mnt/shared_storage/emmy/logs/info.log"
+  ANYSCALE_ASSISTANT_INDEX: "/mnt/shared_storage/emmy/production/index.sql"
+  ANYSCALE_ASSISTANT_EMBEDDING_MODEL: "text-embedding-3-large"
+  ANYSCALE_ASSISTANT_RERANKER_MODEL: "/mnt/shared_storage/ray-assistant-data/reranker.pkl"
