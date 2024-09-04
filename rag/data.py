@@ -37,16 +37,16 @@ def extract_sections(record):
 
 
 def extract_md_sections(docs_dir):
-    sections = []
-    for path in docs_dir.rglob("*.md"):
-        if not path.is_dir():
-            with open(path, "r", encoding="utf-8") as file:
-                text = file.read()
-            # Convert the file path to a URL, remove the '.md' extension
-            relative_path = path.relative_to(docs_dir).with_suffix("")  # Remove the '.md'
-            source = f"https://docs.anyscale.com/{relative_path.as_posix()}"
-            sections.append({"source": source, "text": text})
-    return sections
+    # Create a list of dictionaries containing the source URL and text content.
+    anyscale_mds = [
+        {
+            "source": f"https://docs.anyscale.com/{path.relative_to(docs_dir).with_suffix('').as_posix()}",
+            "text": path.read_text(encoding="utf-8"),
+        }
+        for path in docs_dir.rglob("*.md")
+        if not path.is_dir()
+    ]
+    return anyscale_mds
 
 
 def fetch_text(uri):
